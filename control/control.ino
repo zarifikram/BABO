@@ -41,26 +41,26 @@ float alpha = 0.75;
 float gamma = 0.1;
 float epsilon;
 
-const int nServoStates1 = 4;
-float minServoAngle1 = 40;
-float maxServoAngle1 = 60;
-float initialServoAngle1 = 50;
+const int nServoStates1 = 3;
+float minServoAngle1 = 80;
+float maxServoAngle1 = 100;
+float initialServoAngle1 = 90;
 float deltaAngle1 = (maxServoAngle1 - minServoAngle1) / (nServoStates1 - 1);
 int state1 = int((initialServoAngle1 - minServoAngle1)/deltaAngle1);
 float delayTime1 = 4.5*deltaAngle1;
 
-const int nServoStates2 = 4;
-float minServoAngle2 = 90;
-float maxServoAngle2 = 110;
-float initialServoAngle2 = 100;
+const int nServoStates2 = 3;
+float minServoAngle2 = 80;
+float maxServoAngle2 = 100;
+float initialServoAngle2 = 90;
 float deltaAngle2 = (maxServoAngle2 - minServoAngle2) / (nServoStates2 - 1);
 int state2 = int((initialServoAngle2 - minServoAngle2)/deltaAngle2);
 float delayTime2 = 4.5*deltaAngle2;
 
-const int nServoStates3 = 4;
-float minServoAngle3 = 40;
-float maxServoAngle3 = 60;
-float initialServoAngle3 = 50;
+const int nServoStates3 = 3;
+float minServoAngle3 = 10;
+float maxServoAngle3 = 50;
+float initialServoAngle3 = 30;
 float deltaAngle3 = (maxServoAngle3 - minServoAngle3) / (nServoStates3 - 1);
 int state3 = int((initialServoAngle3 - minServoAngle3)/deltaAngle3);
 float delayTime3 = 4.5*deltaAngle3;
@@ -81,15 +81,16 @@ int action = 0;
 
 void setup(){
     
-    delay(5000);
+    // delay(5000);
     Serial.begin(9600);
     pwm.begin();
-  
+    Serial.println("hellow");
     pwm.setPWMFreq(60);  // Analog servos run at ~60 Hz updates
     pwm.setPWM(SERVO1_PIN, 0, angleToPulse(initialServoAngle1));
     pwm.setPWM(SERVO2_PIN, 0, angleToPulse(initialServoAngle2));
     pwm.setPWM(SERVO3_PIN, 0, angleToPulse(initialServoAngle3));
     yield();
+    delay(2000);    
 
     if (!SD.begin(PIN_SPI_CS)) {
         Serial.println(F("SD CARD FAILED, OR NOT PRESENT!"));
@@ -109,7 +110,7 @@ int getAction(){
     int bestValue = -1000000;
     int bestAction;
     int action;
-
+    printStates();
     if(state1 + 1 != nServoStates1){
         isActionValid[0] = 1;
         if(Q[state1][state2][state3][0] > bestValue){
@@ -117,45 +118,45 @@ int getAction(){
             bestAction = 0;
         }
     }
-    else if(state1 != 0){
+    if(state1 != 0){
         isActionValid[1] = 1;
         if(Q[state1][state2][state3][1] > bestValue){
             bestValue = Q[state1][state2][state3][1];
             bestAction = 1;
         }
     }
-    else if(state2 + 1 != nServoStates2){
+    if(state2 + 1 != nServoStates2){
         isActionValid[2] = 1;
         if(Q[state1][state2][state3][2] > bestValue){
             bestValue = Q[state1][state2][state3][2];
             bestAction = 2;
         }
     }
-    else if(state2 != 0){
+    if(state2 != 0){
+        Serial.println("here went");
         isActionValid[3] = 1;
         if(Q[state1][state2][state3][3] > bestValue){
             bestValue = Q[state1][state2][state3][3];
             bestAction = 3;
         }
     }
-    else if(state3 + 1 != nServoStates3){
+    if(state3 + 1 != nServoStates3){
         isActionValid[4] = 1;
         if(Q[state1][state2][state3][4] > bestValue){
             bestValue = Q[state1][state2][state3][4];
             bestAction = 4;
         }
     }
-    else if(state3 != 0){
-        isActionValid[3] = 1;
+    if(state3 != 0){
+        isActionValid[5] = 1;
         if(Q[state1][state2][state3][5] > bestValue){
             bestValue = Q[state1][state2][state3][5];
             bestAction = 5;
         }
     }
 
-
     float randomValue = random(0, 101);
-    if(randomValue < (1 - epsilon)*100){
+    if(randomValue < (1 - epsilon)*1000){
         // take best action
         action = bestAction;
     }
@@ -164,11 +165,13 @@ int getAction(){
         bool randomActionFound = false;
         while(!randomActionFound){
             action = random(0, nActions);
+            Serial.print("action");Serial.println(action);
             if(isActionValid[action] == 1){
                 randomActionFound = true;
             }
         }
     }
+    Serial.print("Action: "); Serial.println(action);
     return action;
 }
 
@@ -197,7 +200,6 @@ void goToNextState(int action){
 
 void executeAction(int action){
     // executes action i.e rotate a servo cw\ccw
-
     if(action == 0){
         servoAngles[0] = servoAngles[0] + deltaAngle1;
         pwm.setPWM(SERVO1_PIN, 0, angleToPulse(servoAngles[0]));
@@ -364,4 +366,11 @@ void loop(){
     Serial.println(state2);
     Serial.println(state1);
     delay(1000);
+}
+
+void printStates(){
+  Serial.print("State 1 : "); Serial.println(state1);
+  Serial.print("State 2 : "); Serial.println(state2);
+  Serial.print("State 3 : "); Serial.println(state3);
+  // delay(1000);
 }
