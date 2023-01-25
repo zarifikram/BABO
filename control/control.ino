@@ -41,7 +41,7 @@ float alpha = 0.75;
 float gamma = 0.1;
 float epsilon;
 
-const int nServoStates1 = 3;
+const int nServoStates1 = 1;
 float minServoAngle1 = 80;
 float maxServoAngle1 = 100;
 float initialServoAngle1 = 90;
@@ -49,7 +49,7 @@ float deltaAngle1 = (maxServoAngle1 - minServoAngle1) / (nServoStates1 - 1);
 int state1 = int((initialServoAngle1 - minServoAngle1)/deltaAngle1);
 float delayTime1 = 4.5*deltaAngle1;
 
-const int nServoStates2 = 3;
+const int nServoStates2 = 5;
 float minServoAngle2 = 80;
 float maxServoAngle2 = 100;
 float initialServoAngle2 = 90;
@@ -57,10 +57,10 @@ float deltaAngle2 = (maxServoAngle2 - minServoAngle2) / (nServoStates2 - 1);
 int state2 = int((initialServoAngle2 - minServoAngle2)/deltaAngle2);
 float delayTime2 = 4.5*deltaAngle2;
 
-const int nServoStates3 = 3;
-float minServoAngle3 = 10;
-float maxServoAngle3 = 50;
-float initialServoAngle3 = 30;
+const int nServoStates3 = 5;
+float minServoAngle3 = 5;
+float maxServoAngle3 = 35;
+float initialServoAngle3 = 20;
 float deltaAngle3 = (maxServoAngle3 - minServoAngle3) / (nServoStates3 - 1);
 int state3 = int((initialServoAngle3 - minServoAngle3)/deltaAngle3);
 float delayTime3 = 4.5*deltaAngle3;
@@ -83,6 +83,7 @@ void setup(){
     
     // delay(5000);
     Serial.begin(9600);
+    // Serial.begin(38400);
     pwm.begin();
     Serial.println("hellow");
     pwm.setPWMFreq(60);  // Analog servos run at ~60 Hz updates
@@ -110,7 +111,7 @@ int getAction(){
     int bestValue = -1000000;
     int bestAction;
     int action;
-    printStates();
+    // printStates();
     if(state1 + 1 != nServoStates1){
         isActionValid[0] = 1;
         if(Q[state1][state2][state3][0] > bestValue){
@@ -133,7 +134,6 @@ int getAction(){
         }
     }
     if(state2 != 0){
-        Serial.println("here went");
         isActionValid[3] = 1;
         if(Q[state1][state2][state3][3] > bestValue){
             bestValue = Q[state1][state2][state3][3];
@@ -156,22 +156,23 @@ int getAction(){
     }
 
     float randomValue = random(0, 101);
-    if(randomValue < (1 - epsilon)*1000){
+    Serial.print("value need to be [1, 100]"); Serial.println((1 - epsilon)*100);
+    if(randomValue < (1 - epsilon)*100){
         // take best action
         action = bestAction;
     }
     else{
         // explore
+        Serial.println("exploring");
         bool randomActionFound = false;
         while(!randomActionFound){
             action = random(0, nActions);
-            Serial.print("action");Serial.println(action);
             if(isActionValid[action] == 1){
                 randomActionFound = true;
             }
         }
     }
-    Serial.print("Action: "); Serial.println(action);
+    // Serial.print("Action: "); Serial.println(action);
     return action;
 }
 
@@ -244,9 +245,10 @@ float getDistance(){
     currentDistance = sonar1.ping_cm();
     deltaDistance = currentDistance - previousDistance;
     
-    if(deltaDistance > 100 || deltaDistance < -50) deltaDistance = 0;
+    Serial.print("Distance  ");Serial.println(currentDistance);
+    Serial.print("Prev Distance  ");Serial.println(previousDistance);
+    if(deltaDistance > 10 || deltaDistance < -10) deltaDistance = 0;
     previousDistance = currentDistance;
-    Serial.println(currentDistance);
     float penalty = 0;
     float s2Dist = sonar2.ping_cm(), s3Dist = sonar3.ping_cm();
     if(s2Dist > 3 && s2Dist < 20 || s3Dist > 3 && s3Dist){
@@ -353,14 +355,16 @@ void checkBTCommands(){
 int tt = 0; 
 void loop(){
     tt++;
-    epsilon = exp(-tt/1000);
+    epsilon = exp(-tt/1000.0);
     action = getAction();
     goToNextState(action);
     executeAction(action);
     reward = getDistance();
     lookahead = getLookahead();
     sample = reward + gamma * lookahead;
+    Serial.print("Current Q : "); Serial.println(Q[state1][state2][state3][action]);
     Q[state1][state2][state3][action] += alpha*(sample - Q[state1][state2][state3][action]);
+    Serial.print("New Q : "); Serial.println(Q[state1][state2][state3][action]);
     if(tt==1)initializeQ();
     // Serial.println(action);
     Serial.println(state2);
