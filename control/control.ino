@@ -37,19 +37,19 @@ NewPing sonar3(TRIG_PIN3, ECHO_PIN3, MAX_DISTANCE);
 
 
 // algo var
-float alpha = 0.75;
-float gamma = 0.1;
+const float alpha = 0.75; 
+const float gamma = 0.1;
 float epsilon;
 
-const int nServoStates1 = 2;
-float minServoAngle1 = 110;
-float maxServoAngle1 = 130;
-float initialServoAngle1 = 110;
+#define nServoStates1 2
+#define minServoAngle1 110
+#define maxServoAngle1 130
+#define initialServoAngle1 110
 float deltaAngle1 = (maxServoAngle1 - minServoAngle1) / (nServoStates1 - 1);
 int state1 = int((initialServoAngle1 - minServoAngle1)/deltaAngle1);
 float delayTime1 = 4.5*deltaAngle1;
 
-const int nServoStates2 = 3;
+#define nServoStates2 2
 float minServoAngle2 = 45;
 float maxServoAngle2 = 55;
 float initialServoAngle2 = 45;
@@ -67,9 +67,10 @@ float delayTime3 = 4.5*deltaAngle3;
 
 const int nActions = 6;
 float servoAngles[3] = {initialServoAngle1, initialServoAngle2, initialServoAngle3};
+int isCollision = 0;
+const int nCollisionStates = 2;
+float Q[nCollisionStates][nServoStates1][nServoStates2][nServoStates3][nActions];
 
-float Q[nServoStates1][nServoStates2][nServoStates3][nActions];
-// float Q[3][3][3][6];
 
 int reward = 0;
 int currentDistance = 0;
@@ -85,7 +86,7 @@ void setup(){
     Serial.begin(9600);
     // Serial.begin(38400);
     pwm.begin();
-    Serial.println("hellow");
+    // Serial.println("hellow");
     pwm.setPWMFreq(60);  // Analog servos run at ~60 Hz updates
     pwm.setPWM(SERVO1_PIN, 0, angleToPulse(initialServoAngle1));
     pwm.setPWM(SERVO2_PIN, 0, angleToPulse(initialServoAngle2));
@@ -114,56 +115,56 @@ int getAction(){
     // printStates();
     if(state1 + 1 != nServoStates1){
         isActionValid[0] = 1;
-        if(Q[state1][state2][state3][0] > bestValue){
-            bestValue = Q[state1][state2][state3][0];
+        if(Q[isCollision][state1][state2][state3][0] > bestValue){
+            bestValue = Q[isCollision][state1][state2][state3][0];
             bestAction = 0;
         }
     }
-    if(state1 != 0){
+    if(state1 != 0 && isCollision){
         isActionValid[1] = 1;
-        if(Q[state1][state2][state3][1] > bestValue){
-            bestValue = Q[state1][state2][state3][1];
+        if(Q[isCollision][state1][state2][state3][1] > bestValue){
+            bestValue = Q[isCollision][state1][state2][state3][1];
             bestAction = 1;
         }
     }
     if(state2 + 1 != nServoStates2){
         isActionValid[2] = 1;
-        if(Q[state1][state2][state3][2] > bestValue){
+        if(Q[isCollision][state1][state2][state3][2] > bestValue){
             bestValue = Q[state1][state2][state3][2];
             bestAction = 2;
         }
     }
     if(state2 != 0){
         isActionValid[3] = 1;
-        if(Q[state1][state2][state3][3] > bestValue){
+        if(Q[isCollision][state1][state2][state3][3] > bestValue){
             bestValue = Q[state1][state2][state3][3];
             bestAction = 3;
         }
     }
     if(state3 + 1 != nServoStates3){
         isActionValid[4] = 1;
-        if(Q[state1][state2][state3][4] > bestValue){
-            bestValue = Q[state1][state2][state3][4];
+        if(Q[isCollision][state1][state2][state3][4] > bestValue){
+            bestValue = Q[isCollision][state1][state2][state3][4];
             bestAction = 4;
         }
     }
     if(state3 != 0){
         isActionValid[5] = 1;
-        if(Q[state1][state2][state3][5] > bestValue){
-            bestValue = Q[state1][state2][state3][5];
+        if(Q[isCollision][state1][state2][state3][5] > bestValue){
+            bestValue = Q[isCollision][state1][state2][state3][5];
             bestAction = 5;
         }
     }
 
     float randomValue = random(0, 101);
-    Serial.print("value need to be [1, 100]"); Serial.println(5*(1 - epsilon)*100);
-    if(randomValue < 5*(1 - epsilon)*100){
+    // Serial.print("value need to be [1, 100]"); Serial.println(5*(1 - epsilon)*100);
+    if(randomValue < 2*(1 - epsilon)*100){
         // take best action
         action = bestAction;
     }
     else{
         // explore
-        Serial.println("exploring");
+        Serial.println(F("exploring"));
         bool randomActionFound = false;
         while(!randomActionFound){
             action = random(0, nActions);
@@ -179,6 +180,13 @@ int getAction(){
 void goToNextState(int action){
     // for an action, only one state will change
     // for example rotating servo1 ccw reduces state
+    float s2Dist = sonar2.ping_cm(), s3Dist = sonar3.ping_cm();
+    if(s2Dist > 3 && s2Dist < 35 || s3Dist > 3 && s3Dist < 35){
+      isCollision = 1;
+    }
+    else{
+      isCollision = 0;
+    }
     if(action == 0){
         state1++;
     }
@@ -245,50 +253,56 @@ float getDistance(){
     currentDistance = sonar1.ping_cm();
     deltaDistance = currentDistance - previousDistance;
     
-    Serial.print("Prev Distance  ");Serial.println(previousDistance);
-    if(deltaDistance > 10 || deltaDistance < -10) deltaDistance = 0;
+    // Serial.print("Prev Distance  ");Serial.println(previousDistance);
+    if(deltaDistance > 30 || deltaDistance < -30) deltaDistance = 0;
     previousDistance = currentDistance;
     float penalty = 0;
     float s2Dist = sonar2.ping_cm(), s3Dist = sonar3.ping_cm();
-    if(s2Dist > 3 && s2Dist < 20 || s3Dist > 3 && s3Dist < 20){
+    Serial.print(F("Distance2  "));Serial.println(s2Dist);
+    Serial.print(F("Distance3  "));Serial.println(s3Dist);
+    float res;
+    if(isCollision){
         // zero distance means it is good
-        Serial.println("Object ahead");
-        Serial.print("Distance2  ");Serial.println(s2Dist);
-        Serial.print("Distance3  ");Serial.println(s3Dist);
-        if(s2Dist == 0 || s2Dist > 25) s2Dist = 25;
-        if(s3Dist == 0 || s3Dist > 25) s3Dist = 25;
-        penalty += (25 - s2Dist) / (17*2);
-        penalty += (25 - s3Dist) / (17*2);
+        Serial.println(F("Object ahead"));
+        if(s2Dist == 0 || s2Dist > 35) s2Dist = 40;
+        if(s3Dist == 0 || s3Dist > 35) s3Dist = 40;
+        penalty += (40 - s2Dist) / (17*2);
+        penalty += (40 - s3Dist) / (17*2);
         float currentShift = abs(s2Dist - s3Dist);
         penalty -= (currentShift - previousShift);
+        if(currentShift - previousShift > 0) Serial.println(F("good obs"));
+        else Serial.println(F("Bad obs"));
+        res = penalty;
         previousShift = currentShift;
     }
     else{
-        previousShift = 0;
+        res = deltaDistance;
+        if(deltaDistance > 0) Serial.println(F("good agg"));
+        else if(deltaDistance < 0) Serial.println(F("Bad agg"));
     }
-    deltaDistance -= penalty;
-    return deltaDistance;
+    Serial.print(F("Reward ")); Serial.println(res);
+    return res;
 }
 
 float getLookahead(){
     float bestValue = -1000000;
     if(state1 + 1 != nServoStates1){
-        bestValue = max(Q[state1][state2][state3][0], bestValue);
+        bestValue = max(Q[isCollision][state1][state2][state3][0], bestValue);
     }
     else if(state1 != 0){
-        bestValue = max(bestValue, Q[state1][state2][state3][1]);
+        bestValue = max(bestValue, Q[isCollision][state1][state2][state3][1]);
     }
     else if(state2 + 1 != nServoStates2){
-        bestValue = max(bestValue, Q[state1][state2][state3][2]);
+        bestValue = max(bestValue, Q[isCollision][state1][state2][state3][2]);
     }
     else if(state2 != 0){
-        bestValue = max(bestValue, Q[state1][state2][state3][3]);
+        bestValue = max(bestValue, Q[isCollision][state1][state2][state3][3]);
     }
     else if(state3 + 1 != nServoStates3){
-        bestValue = max(bestValue, Q[state1][state2][state3][4]);
+        bestValue = max(bestValue, Q[isCollision][state1][state2][state3][4]);
     }
     else if(state3 != 0){
-        bestValue = max(bestValue, Q[state1][state2][state3][5]);
+        bestValue = max(bestValue, Q[isCollision][state1][state2][state3][5]);
     }
 
     return bestValue;
@@ -299,8 +313,10 @@ void initializeQ(){
     for(int i = 0; i < nServoStates1; i++)
         for(int j = 0; j < nServoStates2; j++)
             for(int k = 0; k < nServoStates3; k++)
-                for(int l = 0; l < nActions; l++)
-                    Q[i][j][k][l] = 10.0;
+                for(int l = 0; l < nActions; l++){
+                    Q[0][i][j][k][l] = 10.0;
+                    Q[1][i][j][k][l] = 10.0;
+                }
 }
 
 void wrtiteQToSD(){
@@ -311,7 +327,9 @@ void wrtiteQToSD(){
             for(int j = 0; j < nServoStates2; j++)
                 for(int k = 0; k < nServoStates3; k++)
                     for(int l = 0; l < nActions; l++){
-                        file.write(Q[i][j][k][l]);
+                        file.write(Q[0][i][j][k][l]);
+                        file.write(' ');
+                        file.write(Q[1][i][j][k][l]);
                         file.write(' ');
                     }
         file.close();
@@ -329,7 +347,8 @@ void readQFromSD(){
             for(int j = 0; j < nServoStates2; j++)
                 for(int k = 0; k < nServoStates3; k++)
                     for(int l = 0; l < nActions; l++){
-                        Q[i][j][k][l] = file.parseFloat();
+                        Q[0][i][j][k][l] = file.parseFloat();
+                        Q[1][i][j][k][l] = file.parseFloat();
                     }
         file.close();
     } else {
@@ -364,19 +383,19 @@ void loop(){
     reward = getDistance();
     lookahead = getLookahead();
     sample = reward + gamma * lookahead;
-    Serial.print("Current Q : "); Serial.println(Q[state1][state2][state3][action]);
-    Q[state1][state2][state3][action] += alpha*(sample - Q[state1][state2][state3][action]);
-    Serial.print("New Q : "); Serial.println(Q[state1][state2][state3][action]);
+    // Serial.print("Current Q : "); Serial.println(Q[isCollision][state1][state2][state3][action]);
+    Q[isCollision][state1][state2][state3][action] += alpha*(sample - Q[isCollision][state1][state2][state3][action]);
+    // Serial.print("New Q : "); Serial.println(Q[isCollision][state1][state2][state3][action]);
     if(tt==1)initializeQ();
     // Serial.println(action);
-    Serial.println(state2);
-    Serial.println(state1);
+    // Serial.println(state2);
+    // Serial.println(state1);
     delay(1000);
 }
 
-void printStates(){
-  Serial.print("State 1 : "); Serial.println(state1);
-  Serial.print("State 2 : "); Serial.println(state2);
-  Serial.print("State 3 : "); Serial.println(state3);
-  // delay(1000);
-}
+// void printStates(){
+//   Serial.print("State 1 : "); Serial.println(state1);
+//   Serial.print("State 2 : "); Serial.println(state2);
+//   Serial.print("State 3 : "); Serial.println(state3);
+//   // delay(1000);
+// }
