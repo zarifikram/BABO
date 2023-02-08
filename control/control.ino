@@ -24,12 +24,12 @@ Adafruit_PWMServoDriver pwm = Adafruit_PWMServoDriver();
 // Sonar
 // sonar 1 = at the back, used for distance forwarded or not
 // sonar 2, 3 at the forward corner. User to know whether there's something forward
-#define TRIG_PIN1 4
-#define ECHO_PIN1 5
-#define TRIG_PIN2 6
-#define ECHO_PIN2 7
-#define TRIG_PIN3 8
-#define ECHO_PIN3 9
+#define TRIG_PIN1 6
+#define ECHO_PIN1 7
+#define TRIG_PIN2 2
+#define ECHO_PIN2 3
+#define TRIG_PIN3 4
+#define ECHO_PIN3 5
 #define MAX_DISTANCE 300
 NewPing sonar1(TRIG_PIN1, ECHO_PIN1, MAX_DISTANCE); 
 NewPing sonar2(TRIG_PIN2, ECHO_PIN2, MAX_DISTANCE);
@@ -41,26 +41,26 @@ float alpha = 0.75;
 float gamma = 0.1;
 float epsilon;
 
-const int nServoStates1 = 1;
-float minServoAngle1 = 80;
-float maxServoAngle1 = 100;
-float initialServoAngle1 = 90;
+const int nServoStates1 = 2;
+float minServoAngle1 = 110;
+float maxServoAngle1 = 130;
+float initialServoAngle1 = 110;
 float deltaAngle1 = (maxServoAngle1 - minServoAngle1) / (nServoStates1 - 1);
 int state1 = int((initialServoAngle1 - minServoAngle1)/deltaAngle1);
 float delayTime1 = 4.5*deltaAngle1;
 
-const int nServoStates2 = 5;
-float minServoAngle2 = 80;
-float maxServoAngle2 = 100;
-float initialServoAngle2 = 90;
+const int nServoStates2 = 3;
+float minServoAngle2 = 45;
+float maxServoAngle2 = 55;
+float initialServoAngle2 = 45;
 float deltaAngle2 = (maxServoAngle2 - minServoAngle2) / (nServoStates2 - 1);
 int state2 = int((initialServoAngle2 - minServoAngle2)/deltaAngle2);
 float delayTime2 = 4.5*deltaAngle2;
 
-const int nServoStates3 = 5;
-float minServoAngle3 = 5;
-float maxServoAngle3 = 35;
-float initialServoAngle3 = 20;
+const int nServoStates3 = 3;
+float minServoAngle3 = 50;
+float maxServoAngle3 = 80;
+float initialServoAngle3 = 80;
 float deltaAngle3 = (maxServoAngle3 - minServoAngle3) / (nServoStates3 - 1);
 int state3 = int((initialServoAngle3 - minServoAngle3)/deltaAngle3);
 float delayTime3 = 4.5*deltaAngle3;
@@ -156,8 +156,8 @@ int getAction(){
     }
 
     float randomValue = random(0, 101);
-    Serial.print("value need to be [1, 100]"); Serial.println((1 - epsilon)*100);
-    if(randomValue < (1 - epsilon)*100){
+    Serial.print("value need to be [1, 100]"); Serial.println(5*(1 - epsilon)*100);
+    if(randomValue < 5*(1 - epsilon)*100){
         // take best action
         action = bestAction;
     }
@@ -245,14 +245,16 @@ float getDistance(){
     currentDistance = sonar1.ping_cm();
     deltaDistance = currentDistance - previousDistance;
     
-    Serial.print("Distance  ");Serial.println(currentDistance);
     Serial.print("Prev Distance  ");Serial.println(previousDistance);
     if(deltaDistance > 10 || deltaDistance < -10) deltaDistance = 0;
     previousDistance = currentDistance;
     float penalty = 0;
     float s2Dist = sonar2.ping_cm(), s3Dist = sonar3.ping_cm();
-    if(s2Dist > 3 && s2Dist < 20 || s3Dist > 3 && s3Dist){
+    if(s2Dist > 3 && s2Dist < 20 || s3Dist > 3 && s3Dist < 20){
         // zero distance means it is good
+        Serial.println("Object ahead");
+        Serial.print("Distance2  ");Serial.println(s2Dist);
+        Serial.print("Distance3  ");Serial.println(s3Dist);
         if(s2Dist == 0 || s2Dist > 25) s2Dist = 25;
         if(s3Dist == 0 || s3Dist > 25) s3Dist = 25;
         penalty += (25 - s2Dist) / (17*2);
