@@ -48,9 +48,9 @@ int state1 = int((initialServoAngle1 - minServoAngle1)/deltaAngle1);
 
 
 #define nServoStates2 2
-float minServoAngle2 = 45;
+float minServoAngle2 = 40;
 float maxServoAngle2 = 55;
-float initialServoAngle2 = 45;
+float initialServoAngle2 = 40;
 float deltaAngle2 = (maxServoAngle2 - minServoAngle2) / (nServoStates2 - 1);
 int state2 = int((initialServoAngle2 - minServoAngle2)/deltaAngle2);
 
@@ -610,7 +610,7 @@ void loop(){
 
 
     float s2Dist = sonar2.ping_cm(), s3Dist = sonar3.ping_cm();
-    if(s2Dist > 3 && s2Dist < 35 || s3Dist > 3 && s3Dist < 35){
+    if(state1 == 1 && ((s2Dist > 3 && s2Dist < 45) || (s3Dist > 3 && s3Dist < 45))){
       if(s2Dist - s3Dist > 10 || s2Dist == 0)
         isCollision = 1;
       else
