@@ -583,7 +583,7 @@ void loop(){
       reward = getDistance();
       lookahead = getLookahead2();
       sample = reward + gamma * lookahead;
-      C[s][action] += alpha*(sample - C[s][action]);
+      if(tt < 1000) C[s][action] += alpha*(sample - C[s][action]);
     }
     else if(isCollision == 2){
       action = getAction3();
@@ -592,7 +592,7 @@ void loop(){
       reward = getDistance();
       lookahead = getLookahead3();
       sample = reward + gamma * lookahead;
-      C_[s][action] += alpha*(sample - C_[s][action]);
+      if(tt < 1000) C_[s][action] += alpha*(sample - C_[s][action]);
     }
     else{
       action = getAction();
@@ -601,17 +601,17 @@ void loop(){
       reward = getDistance();
       lookahead = getLookahead();
       sample = reward + gamma * lookahead;
-      Q[s][action] += alpha*(sample - Q[s][action]);
+      if(tt < 1000) Q[s][action] += alpha*(sample - Q[s][action]);
     }
     
 
     s = sPrime;
-    if(tt==2) {initializeQC();tt=1200;}
+    if(tt==2) {initializeQC();}
 
 
     float s2Dist = sonar2.ping_cm(), s3Dist = sonar3.ping_cm();
     if(s2Dist > 3 && s2Dist < 35 || s3Dist > 3 && s3Dist < 35){
-      if(s2Dist > s3Dist || s2Dist == 0)
+      if(s2Dist - s3Dist > 10 || s2Dist == 0)
         isCollision = 1;
       else
         isCollision = 2;
@@ -622,7 +622,8 @@ void loop(){
     // Serial.print("Sonar 1: "); Serial.println(sonar1.ping_cm());
     // Serial.print("Sonar 2: "); Serial.println(sonar2.ping_cm());
     // Serial.print("Sonar 3: "); Serial.println(sonar3.ping_cm());
-    delay(200);
+    // delay(2000);
+    delay(150);
 }
 
 void incrementAngle(int servoPin, int fro, int to){
