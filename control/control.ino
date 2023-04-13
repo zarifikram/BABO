@@ -604,14 +604,16 @@ void loop(){
 
 
     float s2Dist = sonar2.ping_cm(), s3Dist = sonar3.ping_cm();
-    if(state1 == 1 && ((s2Dist > 3 && s2Dist < 45) || (s3Dist > 3 && s3Dist < 45))){
-      if(s2Dist - s3Dist > 10 || s2Dist == 0)
+    if(state1 == 1){
+    if((s2Dist > 3 && s2Dist < 45) || (s3Dist > 3 && s3Dist < 45)){
+      if(s2Dist - s3Dist > 0 || s2Dist == 0)
         isCollision = 1;
       else
         isCollision = 2;
     }
     else{
       isCollision = 0;
+    }
     }
     // Serial.print("Sonar 1: "); Serial.println(sonar1.ping_cm());
     // Serial.print("Sonar 2: "); Serial.println(sonar2.ping_cm());
