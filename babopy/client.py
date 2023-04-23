@@ -17,7 +17,7 @@ class Client:
         :type host: str
         :param port: The port to connect to. Defaults to 7234.
         :type port: int
-        :param func: The function to use to generate a random state. Defaults to babopy.utils.get_random_state Function signature must be func(action: int) -> typing.Tuple[float, float, bool, bool, dict]
+        :param func: The function to use to generate a random state. Defaults to babopy.utils.get_random_state. Function signature must be func(action: int) -> typing.Tuple[float, float, bool, bool, dict]
         :type func: typing.Callable
         """
         self.host = host
