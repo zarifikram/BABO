@@ -27,7 +27,7 @@ class RandomAlgorithm(BaseAlgorithm):
         """
         self.action_space = action_space
         
-    def get_action(self) -> int:
+    def sample(self) -> int:
         """
         Returns an action from the action space.
         :return: A random action from the action space

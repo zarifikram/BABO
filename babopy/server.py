@@ -29,7 +29,7 @@ class Server:
         else:
             self.action_space: BaseAlgorithm = algorithm
 
-        self.last_update: typing.Tuple[float, float, bool, bool, dict] = (0.0, 0.0, False, False, {})
+        self.last_update: typing.Tuple[int, float, bool, bool, dict] = (0.0, 0.0, False, False, {})
         self.socket: socket.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 
@@ -87,7 +87,7 @@ class Server:
         """
         self.send(f'{ACTION} {action}')
 
-    def fetch_results(self) -> typing.Tuple[float, float, bool, bool, dict]:
+    def fetch_results(self) -> typing.Tuple[int, float, bool, bool, dict]:
         """
         Fetches the action result from the client. The data is in JSON format.
         Keys are 'observation', 'reward', 'termination', 'truncation' and 'info'.
@@ -102,15 +102,15 @@ class Server:
         except json.decoder.JSONDecodeError:
             return (0.0, 0.0, False, False, {})
 
-    def get_action(self) -> int:
+    def sample(self) -> int:
         """
         Returns the next action based on the action space.
         :return: The next action
         :rtype: int
         """
-        return self.action_space.get_action()
+        return self.action_space.sample()
 
-    def step(self, action=None) -> typing.Tuple[float, float, bool, bool, dict]:
+    def step(self, action=None) -> typing.Tuple[int, float, bool, bool, dict]:
         """
         Combined function for sending an action and fetching the results.
         :param action: The action to send to the client. If None, the action space will be used.
@@ -119,7 +119,7 @@ class Server:
         :rtype: tuple
         """
         if action is None:
-            action = self.get_action()
+            action = self.sample()
         self.send_action(action)
         self.fetch_results()
         self.action_space.update(*self.last_update)

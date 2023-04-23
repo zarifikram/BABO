@@ -2,7 +2,7 @@ class BaseAlgorithm:
     """ 
     Interface for all algorithms. Any algorithm that will be passed to `babopy.Server` must implement this interface.
     """
-    def get_action(self) -> int:
+    def sample(self) -> int:
         """
         Returns an action from the action space.
         :return: The next optimal action from the action space

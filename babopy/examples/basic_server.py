@@ -4,7 +4,7 @@ from pprint import pprint
 server = make(seed=42)
 
 for i in range(100):
-    action = server.get_action()
+    action = server.sample()
     observation, reward, terminated, truncated, info = server.step(action)
     pprint({
         'action': action,
