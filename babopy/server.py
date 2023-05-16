@@ -33,7 +33,6 @@ class Server:
         self.socket: socket.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 
-
     def start(self) -> None:
         """
         Starts the server. This is a blocking call. This method will not return until the client has connected.
@@ -42,7 +41,9 @@ class Server:
         """
         self.socket.bind((self.host, self.port))
         self.socket.listen(1)
+        print(f"Server listening on: {self.host}:{self.port}")
         self.conn, self.addr = self.socket.accept()
+        print(f"Client connected: {self.addr}")
     
     def send(self, data: str) -> None:
         """
@@ -59,7 +60,8 @@ class Server:
         """
         This is a helper function. Receives data from client and decodes it to string before returning.
         """
-        return self.conn.recv(size).decode()
+        _data = self.conn.recv(size).decode()
+        return _data
 
     def fetch_action_space(self) -> int:
         """
@@ -95,12 +97,32 @@ class Server:
         :rtype: tuple
         """
         _data = self.receive()
-        try:
-            data = json.loads(_data)
-            self.last_update = (data['observation'], data['reward'], data['terminated'], data['truncated'], data['info'])
-            return self.last_update
-        except json.decoder.JSONDecodeError:
-            return (0.0, 0.0, False, False, {})
+        data = {
+            'observation': 0,
+            'reward': 0.0,
+            'termination': False,
+            'truncation': False,
+            'info': {}
+        }
+        _data = _data.split('\n')
+        for _d in _data:
+            if _d == END_FLAG:
+                break
+            _type, _value = _d.strip().split(' ', 1)
+            if _type == OBSERVATION_FLAG:
+                data['observation'] = int(_value)
+            elif _type == REWARD_FLAG:
+                data['reward'] = float(_value)
+            elif _type == TERMINATION_FLAG:
+                data['termination'] = True if _value == 'true' else False
+            elif _type == TRUNCATION_FLAG:
+                data['truncation'] = True if _value == 'true' else False
+            elif _type == INFO_FLAG:
+                _key, _val = _value.split(' ', 1)
+                data['info'][_key] = _val
+
+        self.last_update = (data['observation'], data['reward'], data['termination'], data['truncation'], data['info'])
+        return self.last_update
 
     def sample(self) -> int:
         """
