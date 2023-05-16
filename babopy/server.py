@@ -91,8 +91,26 @@ class Server:
 
     def fetch_results(self) -> typing.Tuple[int, float, bool, bool, dict]:
         """
-        Fetches the action result from the client. The data is in JSON format.
-        Keys are 'observation', 'reward', 'termination', 'truncation' and 'info'.
+        Fetches the action result from the client. Client sends all the data line by line.
+        Each line has some flag followed by values. The last line contains only END flag.
+        Flags are, OBS, REW, TERM, TRUN, INFO
+        Observation and Reward are mandatory, the others are perceived as default values if
+        the client doesn't send anything.
+
+        Example 1:
+        OBS 20
+        REW 30.2
+        TERM 0
+        TRUN 0
+        INFO success true
+        INFO data moved forward
+        END
+        
+        Example 2:
+        OBS 8
+        REW 40.6
+        END
+        
         :return: The action result
         :rtype: tuple
         """
@@ -114,9 +132,9 @@ class Server:
             elif _type == REWARD_FLAG:
                 data['reward'] = float(_value)
             elif _type == TERMINATION_FLAG:
-                data['termination'] = True if _value == 'true' else False
+                data['termination'] = False if _value == '0' else True
             elif _type == TRUNCATION_FLAG:
-                data['truncation'] = True if _value == 'true' else False
+                data['truncation'] = False if _value == '0' else True
             elif _type == INFO_FLAG:
                 _key, _val = _value.split(' ', 1)
                 data['info'][_key] = _val
